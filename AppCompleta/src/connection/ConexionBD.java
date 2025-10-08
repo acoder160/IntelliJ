@@ -6,7 +6,7 @@ import java.sql.SQLException;
 
     public class ConexionBD{
 
-    /** URL de conexión al servidor MySQL */
+    /** URL de conexión al servidor MySQL */ // funciona con el .yml de profesor
     private static final String URL = "jdbc:mysql://localhost:3306/acda";
     private static final String USER = "acda";
     private static final String PASSWORD = "masacda";
