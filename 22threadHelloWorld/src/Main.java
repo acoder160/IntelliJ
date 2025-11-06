@@ -8,10 +8,5 @@ public class Main {
             new Thread(hello).start();
             new Thread(world).start();
         }
-
-
-
-
-
     }
 }

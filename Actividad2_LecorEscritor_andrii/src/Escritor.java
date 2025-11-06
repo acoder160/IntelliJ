@@ -1,4 +1,14 @@
-package PACKAGE_NAME;
+public class Escritor implements Runnable {
+    private RecursoCompartido recurso;
+    private int id;
 
-public class Escritor {
+    public Escritor(RecursoCompartido recurso, int id) {
+        this.recurso = recurso;
+        this.id = id;
+    }
+
+    @Override
+    public void run() {
+        recurso.escribir("Cambiado por Escritor-" + id, id);
+    }
 }

@@ -10,7 +10,6 @@ public class TestJDBC {
         String password = "masacda";
 
         try {
-            Class.forName("com.mysql.cj.jdbc.Driver");
             Connection conexion = DriverManager.getConnection(url, usuario, password);
             System.out.println("Conexión exitosa a MySQL!");
 

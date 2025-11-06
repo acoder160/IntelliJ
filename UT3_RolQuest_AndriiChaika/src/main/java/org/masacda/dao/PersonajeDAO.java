@@ -1,4 +1,4 @@
 package org.masacda.dao;
 
-public class PersonajeDAO {
+public class PersonajeDAO imp{
 }
