@@ -9,93 +9,106 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 @Service
 public class LibroService {
 
-    private final CollectionReference coleccionLibros;
+    private final CollectionReference coleccion;
 
     // Inyectamos nuestro FirebaseService
     public LibroService(FirebaseService firebaseService) {
-        this.coleccionLibros = firebaseService.db().collection("libros");
+        this.coleccion = firebaseService.db().collection("libros");
     }
 
-    // --- CRUD BÁSICO ---
-
-    // 1. Crear
+    // 1. CREATE (ID automático)
     public String crearLibro(LibroDto libro) throws ExecutionException, InterruptedException {
-        ApiFuture<DocumentReference> future = coleccionLibros.add(libro);
-        DocumentReference docRef = future.get(); // Esperamos a que se guarde
+        // .add() genera un ID automático
+        ApiFuture<DocumentReference> future = coleccion.add(libro);
+        DocumentReference docRef = future.get(); // Esperamos respuesta
         return docRef.getId();
     }
 
-    // 2. Leer uno por ID
-    public LibroResponse obtenerLibro(String id) throws ExecutionException, InterruptedException {
-        DocumentSnapshot doc = coleccionLibros.document(id).get().get();
-        if (doc.exists()) {
-            // Convertimos el documento a objeto Java automáticamente
-            LibroDto libroDto = doc.toObject(LibroDto.class);
-            return new LibroResponse(doc.getId(), libroDto);
+    // 2. READ ALL
+    public List<LibroResponse> listarTodos() throws ExecutionException, InterruptedException {
+        ApiFuture<QuerySnapshot> future = coleccion.get();
+        List<QueryDocumentSnapshot> documents = future.get().getDocuments();
+
+        List<LibroResponse> lista = new ArrayList<>();
+        for (QueryDocumentSnapshot doc : documents) {
+            LibroResponse response = doc.toObject(LibroResponse.class); // Magia de Jackson
+            response.setId(doc.getId());
+            lista.add(response);
+        }
+        return lista;
+    }
+
+    // 3. READ ONE
+    public LibroResponse obtenerPorId(String id) throws ExecutionException, InterruptedException {
+        DocumentReference docRef = coleccion.document(id);
+        ApiFuture<DocumentSnapshot> future = docRef.get();
+        DocumentSnapshot document = future.get();
+
+        if (document.exists()) {
+            LibroResponse response = document.toObject(LibroResponse.class);
+            response.setId(document.getId());
+            return response;
         }
         return null; // O lanzar excepción personalizada
     }
 
-    // 3. Actualizar
-    public boolean actualizarLibro(String id, LibroDto libroDto) throws ExecutionException, InterruptedException {
-        // .set() sobrescribe el documento. Si quisieras actualizar solo campos sueltos usarías .update()
-        // Usamos set para garantizar que el documento cumple con el DTO completo validado
-        WriteResult result = coleccionLibros.document(id).set(libroDto).get();
-        return result.getUpdateTime() != null;
+    // 4. UPDATE TOTAL (PUT)
+    public void actualizarCompleto(String id, LibroDto libro) throws ExecutionException, InterruptedException {
+        // .set() sobrescribe todo el documento
+        ApiFuture<WriteResult> future = coleccion.document(id).set(libro);
+        future.get(); // Esperar confirmación
     }
 
-    // 4. Borrar
-    public boolean borrarLibro(String id) throws ExecutionException, InterruptedException {
-        WriteResult result = coleccionLibros.document(id).delete().get();
-        return result.getUpdateTime() != null;
+    // 5. UPDATE PARCIAL (PATCH)
+    public void actualizarParcial(String id, Map<String, Object> campos) throws ExecutionException, InterruptedException {
+        // .update() solo cambia los campos que le pases
+        ApiFuture<WriteResult> future = coleccion.document(id).update(campos);
+        future.get();
     }
 
-    // --- CONSULTAS AVANZADAS ---
+    // 6. DELETE
+    public void borrar(String id) throws ExecutionException, InterruptedException {
+        ApiFuture<WriteResult> future = coleccion.document(id).delete();
+        future.get();
+    }
 
-    /**
-     * Filtra por género y/o disponibilidad, ordena y limita resultados.
-     */
-    public List<LibroResponse> buscarLibros(String genero, Boolean disponible, String ordenarPor, int limite) throws ExecutionException, InterruptedException {
+    // 7. BUSQUEDA AVANZADA (Punto 11)
+    public List<LibroResponse> buscar(String genero, Boolean disponible, Double minValoracion, Integer limit)
+            throws ExecutionException, InterruptedException {
 
-        // Empezamos con la colección base
-        Query query = coleccionLibros;
+        Query query = coleccion;
 
-        // Filtro 1: Género (Array Contains)
-        if (genero != null && !genero.isBlank()) {
+        // voy encadenando filtros si no son null
+        if (genero != null) {
+            // array-contains es especial para arrays en Firestore
             query = query.whereArrayContains("generos", genero);
         }
-
-        // Filtro 2: Disponibilidad (Igualdad)
         if (disponible != null) {
             query = query.whereEqualTo("disponible", disponible);
         }
-
-        // Ordenación (si el usuario no envía nada, ordenamos por título)
-        if (ordenarPor != null && !ordenarPor.isBlank()) {
-            query = query.orderBy(ordenarPor, Query.Direction.ASCENDING);
-        } else {
-            query = query.orderBy("titulo");
+        if (minValoracion != null) {
+            query = query.whereGreaterThanOrEqualTo("valoracionMedia", minValoracion);
+        }
+        if (limit != null) {
+            query = query.limit(limit);
         }
 
-        // Límite
-        query = query.limit(limite > 0 ? limite : 10);
+        // Ejecutamos la query construida
+        ApiFuture<QuerySnapshot> future = query.get();
+        List<QueryDocumentSnapshot> documents = future.get().getDocuments();
 
-        // Ejecutar consulta
-        ApiFuture<QuerySnapshot> querySnapshot = query.get();
-        List<QueryDocumentSnapshot> documents = querySnapshot.get().getDocuments();
-
-        // Convertir a DTOs de respuesta
-        List<LibroResponse> respuesta = new ArrayList<>();
+        List<LibroResponse> lista = new ArrayList<>();
         for (QueryDocumentSnapshot doc : documents) {
-            LibroDto dto = doc.toObject(LibroDto.class);
-            respuesta.add(new LibroResponse(doc.getId(), dto));
+            LibroResponse response = doc.toObject(LibroResponse.class);
+            response.setId(doc.getId());
+            lista.add(response);
         }
-
-        return respuesta;
+        return lista;
     }
 }

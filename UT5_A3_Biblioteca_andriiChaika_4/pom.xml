@@ -11,7 +11,7 @@
     </parent>
 
     <groupId>org.masacda</groupId>
-    <artifactId>UT5_A3_Biblioteca_andriiChaika_4</artifactId>
+    <artifactId>UT5_A3_Biblioteca_ChaikAndrii</artifactId>
     <version>1.0-SNAPSHOT</version>
     <properties>
         <maven.compiler.source>21</maven.compiler.source>
@@ -22,7 +22,6 @@
     <dependency>
         <groupId>org.springframework</groupId>
         <artifactId>spring-web</artifactId>
-        <version>7.0.0</version>
         <scope>compile</scope>
     </dependency>
     <!-- REST (incluye Jackson para JSON + autoconfigura ObjectMapper) -->
