@@ -4,12 +4,7 @@ public class Producto {
     private int stock;
 
 
-    public Producto(int identificador, String nombre, int stock) {
-        this.identificador = identificador;
-        this.nombre = nombre;
-        this.stock = stock;
-    }
-
+    .
 
     public void incrementarCantidad(){
         stock++;
